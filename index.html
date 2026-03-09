@@ -33,20 +33,18 @@
 
     * { box-sizing: border-box; }
     
-    /* Специфичные фиксы для Safari/iPadOS */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
       height: 100dvh;
-      overflow: hidden; /* Полностью отключаем системный скролл */
+      overflow: hidden;
       background-color: var(--bg-color);
       overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
     }
 
-    /* Хак для корректной высоты в мобильном Safari (убирает щель 5-7мм) */
     @supports (-webkit-touch-callout: none) {
       html, body {
         height: -webkit-fill-available;
@@ -59,7 +57,6 @@
       background-color: var(--bg-color);
     }
 
-    /* Контейнеры жестко привязаны к краям */
     .start-screen-overlay, .app-container {
       position: absolute;
       top: 0;
@@ -314,15 +311,28 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 4rem 1.5rem;
+      padding: 3rem 1rem; /* Уменьшенный padding для мобилок (дает больше места тексту) */
       border-radius: 1rem;
       border-top: 4px solid;
       transition: background-color 0.3s ease, border-color 0.3s ease;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain; /* Блокирует передачу скролла родителям */
+      overscroll-behavior-y: contain;
       scrollbar-width: thin;
       scrollbar-color: var(--border-color) transparent;
+    }
+    @media (min-width: 768px) {
+      .card-face { padding: 4rem 1.5rem; }
+    }
+
+    /* Безопасное центрирование: предотвращает обрезание верхушки текста при переполнении */
+    .card-face::before {
+      content: "";
+      margin-top: auto;
+    }
+    .card-face::after {
+      content: "";
+      margin-bottom: auto;
     }
 
     .card-face::-webkit-scrollbar { width: 6px; }
@@ -341,8 +351,8 @@
 
     .card-label {
       position: absolute;
-      top: 1.25rem;
-      left: 1.25rem;
+      top: 1rem;
+      left: 1rem;
       font-size: 0.75rem;
       font-weight: 700;
       text-transform: uppercase;
@@ -352,21 +362,23 @@
     .card-back .card-label { color: var(--success); }
 
     .card-content { 
-      font-size: 1.25rem; 
+      font-size: 1.15rem; /* Чуть меньше базовый размер для мобильных */
       font-weight: 600; 
       line-height: 1.5; 
       width: 100%;
-      margin: auto 0; /* Безопасное центрирование, которое не обрезает текст сверху */
+      text-align: center;
       word-wrap: break-word;
       overflow-wrap: break-word;
       transition: font-size 0.2s ease;
+      flex-shrink: 0; /* Не дает тексту сплющиваться */
+      margin: 0;
     }
     @media (min-width: 768px) { .card-content { font-size: 1.5rem; } }
     .card-back .card-content { font-weight: 500; color: var(--text-main); }
 
     .card-hint {
       position: absolute;
-      bottom: 1.25rem;
+      bottom: 1rem;
       font-size: 0.875rem;
       color: var(--text-muted);
       animation: pulse 2s infinite;
@@ -400,7 +412,7 @@
     }
 
     .card-topic-hint {
-      margin-top: 1.5rem;
+      margin-top: 1rem;
       padding-top: 1rem;
       border-top: 1px dashed var(--border-color);
       font-size: 0.875rem;
@@ -412,6 +424,7 @@
       width: 100%;
       justify-content: center;
       text-align: center;
+      flex-shrink: 0;
     }
 
     /* Controls */
@@ -422,12 +435,7 @@
       flex-shrink: 0;
       margin-bottom: 0.5rem;
     }
-    @media (min-width: 768px) {
-      .controls { 
-        gap: 1.5rem; 
-        margin-bottom: 1rem;
-      }
-    }
+    @media (min-width: 768px) { .controls { gap: 1.5rem; margin-bottom: 1rem; } }
 
     .btn-control {
       display: flex;
@@ -525,13 +533,11 @@
     </defs>
   </svg>
 
-  <!-- Чистый стартовый экран -->
   <div class="start-screen-overlay" id="start-screen">
     <h1 class="start-title">Раздел 5. Право (Часть 2)</h1>
     <button class="btn-start" id="btn-big-start">Начать</button>
   </div>
 
-  <!-- Основной контент (отрендерен, но скрыт слоем старта) -->
   <div class="app-container" id="app-container">
     <div class="header">
       <div>
@@ -607,16 +613,13 @@
   </div>
 
   <script>
-    // Жесткая блокировка системного скролла (bounce-эффекта) на iOS
     document.addEventListener('touchmove', function(e) {
-      // Разрешаем скролл только внутри карточки и вкладок
       const isScrollable = e.target.closest('.card-face, .tabs-wrapper');
       if (!isScrollable) {
         if (e.cancelable) e.preventDefault();
       }
     }, { passive: false });
 
-    // База карточек
     const defaultCards = [
       { id: '1', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что регулирует гражданское право?', answer: 'Имущественные и личные неимущественные отношения, основанные на равенстве сторон.' },
       { id: '2', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Кто является субъектами гражданского права?', answer: 'К ним относятся: физические лица, юридические лица и публично-правовые образования.' },
@@ -772,18 +775,28 @@
         const frontFace = document.querySelector('.card-front');
         const backFace = document.querySelector('.card-back');
 
-        // Исправление для Safari/iOS: временно отключаем 3D-поворот задней стороны.
-        // Без этого Safari возвращает неправильную высоту (scrollHeight) для перевернутых элементов.
+        // Исправление для Safari/iOS: временно отключаем 3D-поворот задней стороны
         if (backFace) {
+          backFace.style.transition = 'none';
           backFace.style.transform = 'rotateX(0deg)';
+          backFace.style.backfaceVisibility = 'visible';
+          backFace.style.display = 'flex'; // Принудительный рендер
         }
 
         const fitText = (container, textElement) => {
           let fontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
           const minFontSize = 12; 
-          let safety = 50; // Защита от бесконечного цикла
+          let safety = 50; 
+          
+          // Вычисляем доступную высоту внутри контейнера за вычетом padding
+          const style = window.getComputedStyle(container);
+          const paddingTop = parseFloat(style.paddingTop) || 0;
+          const paddingBottom = parseFloat(style.paddingBottom) || 0;
+          // Оставляем небольшой запас (около 10px), чтобы не было "прилипания"
+          const availableHeight = container.clientHeight - paddingTop - paddingBottom - 10;
 
-          while (container.scrollHeight > container.clientHeight && fontSize > minFontSize && safety > 0) {
+          // Проверяем реальную высоту именно текстового блока
+          while (textElement.scrollHeight > availableHeight && fontSize > minFontSize && safety > 0) {
             fontSize -= 0.5;
             textElement.style.fontSize = fontSize + 'px';
             safety--;
@@ -793,9 +806,13 @@
         if (frontFace && els.cardQuestion) fitText(frontFace, els.cardQuestion);
         if (backFace && els.cardAnswer) fitText(backFace, els.cardAnswer);
 
-        // Возвращаем 3D-поворот обратно (пустая строка вернет значение из CSS: rotateX(180deg))
+        // Возвращаем все свойства обратно
         if (backFace) {
           backFace.style.transform = '';
+          backFace.style.backfaceVisibility = '';
+          backFace.style.display = '';
+          void backFace.offsetHeight; // Принудительный reflow
+          backFace.style.transition = '';
         }
       });
     }
