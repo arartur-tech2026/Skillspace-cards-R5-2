@@ -158,7 +158,6 @@
       perspective: 1000px;
       cursor: pointer;
       margin-bottom: 2.5rem;
-      touch-action: pan-y;
       user-select: none;
       will-change: transform;
     }
@@ -671,42 +670,43 @@
     els.tabLearning.addEventListener('click', () => switchTab('learning'));
     els.tabLearned.addEventListener('click', () => switchTab('learned'));
 
-    // Переворот карточки и механика свайпов (Tinder-like)
+    // --- Логика переворота и свайпов (Mobile & Desktop) ---
     let startX = 0, startY = 0, currentX = 0;
     let isDragging = false;
     let hasDragged = false;
     let isScrolling = false;
+    let wasSwiped = false; // Флаг для блокировки переворота после свайпа
 
-    function handleDragStart(e) {
-      if (e.type === 'mousedown' && e.button !== 0) return;
+    function handleDragStart(clientX, clientY) {
       isDragging = true;
       hasDragged = false;
       isScrolling = false;
-      
-      startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-      startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+      wasSwiped = false;
+      startX = clientX;
+      startY = clientY;
       currentX = startX;
-      
       els.cardWrapper.style.transition = 'none';
     }
 
-    function handleDragMove(e) {
+    function handleDragMove(clientX, clientY, e) {
       if (!isDragging) return;
-      
-      const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-      const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
       
       currentX = clientX;
       const deltaX = currentX - startX;
       const deltaY = clientY - startY;
 
-      // Распознаем, листает ли пользователь текст вниз или свайпает карточку вбок
+      // Если мы еще не определились, что делает пользователь
       if (!hasDragged && !isScrolling) {
-        if (Math.abs(deltaY) > 10 && Math.abs(deltaY) > Math.abs(deltaX)) {
+        // Если движение больше по вертикали - это скролл текста
+        if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5) {
           isScrolling = true;
+          isDragging = false; // Отменяем обработку свайпа
+          els.cardWrapper.style.transition = 'transform 0.3s ease';
+          els.cardWrapper.style.transform = 'translateX(0) rotate(0)';
           return;
         }
-        if (Math.abs(deltaX) > 10) {
+        // Если движение больше по горизонтали - это свайп карточки
+        if (Math.abs(deltaX) > 5) {
           hasDragged = true;
         }
       }
@@ -714,13 +714,14 @@
       if (isScrolling) return;
 
       if (hasDragged) {
-        // Блокируем системные свайпы браузера (например, "назад") только если это точно горизонтальный свайп
+        // Жестко блокируем системные свайпы (назад/вперед/скролл) при горизонтальном смахивании
         if (e.cancelable) e.preventDefault(); 
         
+        wasSwiped = true;
         const rotate = deltaX * 0.05;
         els.cardWrapper.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
         
-        // Визуальная подсветка: Выучил (зеленый) или Повторить (красный)
+        // Визуальная подсветка
         if (deltaX > 20) {
           els.badgeRight.style.opacity = Math.min(deltaX / 100, 1);
           els.badgeLeft.style.opacity = 0;
@@ -734,7 +735,7 @@
       }
     }
 
-    function handleDragEnd(e) {
+    function handleDragEnd() {
       if (!isDragging) return;
       isDragging = false;
       
@@ -742,16 +743,19 @@
 
       const deltaX = currentX - startX;
       
-      // Возвращаем плавную анимацию
-      els.cardWrapper.style.transition = 'transform 0.3s ease';
+      // Делаем анимацию возврата или вылета плавной
+      els.cardWrapper.style.transition = 'transform 0.4s ease-out';
+
+      // Адаптивный порог: не нужно свайпать резко, достаточно довести до определенной точки экрана (минимум 80px)
+      const threshold = Math.max(window.innerWidth * 0.25, 80);
 
       if (hasDragged) {
-        if (deltaX > 100) {
-          handleSwipe('right'); // Выучил
-        } else if (deltaX < -100) {
-          handleSwipe('left'); // Не выучил
+        if (deltaX > threshold) {
+          handleSwipe('right');
+        } else if (deltaX < -threshold) {
+          handleSwipe('left');
         } else {
-          // Если свайп был слишком слабым – возвращаем карточку в центр
+          // Вернуть в центр, если свайп был коротким
           els.cardWrapper.style.transform = 'translateX(0) rotate(0)';
           els.badgeRight.style.opacity = 0;
           els.badgeLeft.style.opacity = 0;
@@ -759,14 +763,26 @@
       }
     }
 
-    // Слушатели для мыши (для ПК)
-    els.cardWrapper.addEventListener('mousedown', handleDragStart);
-    window.addEventListener('mousemove', handleDragMove, { passive: false });
+    // Обработчики мыши (ПК)
+    els.cardWrapper.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      handleDragStart(e.clientX, e.clientY);
+    });
+    window.addEventListener('mousemove', (e) => {
+      handleDragMove(e.clientX, e.clientY, e);
+    }, { passive: false });
     window.addEventListener('mouseup', handleDragEnd);
 
-    // Слушатели для сенсорных экранов (для смартфонов)
-    els.cardWrapper.addEventListener('touchstart', handleDragStart, { passive: true });
-    window.addEventListener('touchmove', handleDragMove, { passive: false });
+    // Обработчики касаний (Телефоны и Планшеты)
+    els.cardWrapper.addEventListener('touchstart', (e) => {
+      handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+    
+    // ВАЖНО: { passive: false } позволяет использовать e.preventDefault()
+    window.addEventListener('touchmove', (e) => {
+      handleDragMove(e.touches[0].clientX, e.touches[0].clientY, e);
+    }, { passive: false });
+    
     window.addEventListener('touchend', handleDragEnd);
     window.addEventListener('touchcancel', handleDragEnd);
 
@@ -775,20 +791,17 @@
       if (filtered.length === 0) return;
       const currentCard = filtered[currentIndex];
 
-      // Анимация вылета карточки за край экрана
       const throwX = direction === 'right' ? window.innerWidth : -window.innerWidth;
       const rotate = direction === 'right' ? 30 : -30;
       els.cardWrapper.style.transform = `translateX(${throwX}px) rotate(${rotate}deg)`;
       
       setTimeout(() => {
-        // Логика отметки статуса: вправо – выучил, влево – не выучил
         if (direction === 'right') {
           learnedIds.add(currentCard.id);
         } else {
           learnedIds.delete(currentCard.id);
         }
 
-        // Обновляем индекс с учетом того, что карточка могла исчезнуть из текущей вкладки
         const newFiltered = cards.filter(c => {
           if (activeTab === 'learned') return learnedIds.has(c.id);
           if (activeTab === 'learning') return !learnedIds.has(c.id);
@@ -805,7 +818,6 @@
           currentIndex = 0;
         }
 
-        // Возвращаем карточку лицевой стороной в центр невидимо для пользователя
         isFlipped = false;
         els.cardWrapper.classList.remove('flipped');
         
@@ -815,20 +827,22 @@
         els.badgeLeft.style.opacity = 0;
         
         updateUI();
-      }, 300); // Задержка совпадает с CSS transition
+      }, 400); // 400ms – время анимации
     }
 
+    // Переворот карточки по клику
     els.cardWrapper.addEventListener('click', (e) => {
-      // Блокируем переворот, если пользователь только что сделал свайп
-      if (hasDragged) {
+      // Если это был свайп, а не просто клик, блокируем переворот
+      if (wasSwiped) {
         e.preventDefault();
         return;
       }
       isFlipped = !isFlipped;
       els.cardWrapper.classList.toggle('flipped', isFlipped);
     });
+    // --- Конец логики свайпов ---
 
-    // Навигация
+    // Навигация по кнопкам
     els.btnNext.addEventListener('click', () => {
       const filtered = getFilteredCards();
       if (filtered.length <= 1) return;
