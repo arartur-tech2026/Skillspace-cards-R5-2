@@ -168,7 +168,7 @@
       width: 100%;
       height: 100%;
       text-align: center;
-      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       transform-style: preserve-3d;
       box-shadow: 0 10px 25px var(--shadow-color);
       border-radius: 1rem;
@@ -584,7 +584,7 @@
 
         const fitText = (container, textElement) => {
           let fontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
-          const minFontSize = 14; 
+          const minFontSize = 12; 
 
           while (container.scrollHeight > container.clientHeight && fontSize > minFontSize) {
             fontSize -= 0.5;
@@ -701,7 +701,7 @@
         if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5) {
           isScrolling = true;
           isDragging = false; // Отменяем обработку свайпа
-          els.cardWrapper.style.transition = 'transform 0.3s ease';
+          els.cardWrapper.style.transition = 'transform 0.25s ease';
           els.cardWrapper.style.transform = 'translateX(0) rotate(0)';
           return;
         }
@@ -743,8 +743,8 @@
 
       const deltaX = currentX - startX;
       
-      // Делаем анимацию возврата или вылета плавной
-      els.cardWrapper.style.transition = 'transform 0.4s ease-out';
+      // Делаем анимацию возврата или вылета плавной и более быстрой
+      els.cardWrapper.style.transition = 'transform 0.3s ease-out';
 
       // Адаптивный порог: не нужно свайпать резко, достаточно довести до определенной точки экрана (минимум 80px)
       const threshold = Math.max(window.innerWidth * 0.25, 80);
@@ -827,7 +827,7 @@
         els.badgeLeft.style.opacity = 0;
         
         updateUI();
-      }, 400); // 400ms – время анимации
+      }, 300); // 300ms – время ускоренной анимации
     }
 
     // Переворот карточки по клику
