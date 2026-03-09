@@ -311,7 +311,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 3rem 1rem; /* Уменьшенный padding для мобилок (дает больше места тексту) */
+      padding: 3rem 1rem; 
       border-radius: 1rem;
       border-top: 4px solid;
       transition: background-color 0.3s ease, border-color 0.3s ease;
@@ -325,7 +325,6 @@
       .card-face { padding: 4rem 1.5rem; }
     }
 
-    /* Безопасное центрирование: предотвращает обрезание верхушки текста при переполнении */
     .card-face::before {
       content: "";
       margin-top: auto;
@@ -362,15 +361,15 @@
     .card-back .card-label { color: var(--success); }
 
     .card-content { 
-      font-size: 1.15rem; /* Чуть меньше базовый размер для мобильных */
+      font-size: 1.15rem; 
       font-weight: 600; 
       line-height: 1.5; 
       width: 100%;
       text-align: center;
       word-wrap: break-word;
       overflow-wrap: break-word;
-      transition: font-size 0.2s ease;
-      flex-shrink: 0; /* Не дает тексту сплющиваться */
+      /* Отключена плавная анимация шрифта, чтобы скрипт масштабирования работал мгновенно и точно */
+      flex-shrink: 0; 
       margin: 0;
     }
     @media (min-width: 768px) { .card-content { font-size: 1.5rem; } }
@@ -384,7 +383,6 @@
       animation: pulse 2s infinite;
     }
 
-    /* Подсказки при свайпе */
     .swipe-badge {
       position: absolute;
       top: 2rem;
@@ -765,55 +763,46 @@
     document.addEventListener('fullscreenchange', updateFullscreenIcon);
     document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
 
+    // Новейшая супер-надежная функция масштабирования текста
     function scaleTextToFit() {
       if (els.startScreen.classList.contains('hidden') === false) return;
       
       requestAnimationFrame(() => {
-        els.cardQuestion.style.fontSize = '';
-        els.cardAnswer.style.fontSize = '';
-
         const frontFace = document.querySelector('.card-front');
         const backFace = document.querySelector('.card-back');
 
-        // Исправление для Safari/iOS: временно отключаем 3D-поворот задней стороны
-        if (backFace) {
-          backFace.style.transition = 'none';
-          backFace.style.transform = 'rotateX(0deg)';
-          backFace.style.backfaceVisibility = 'visible';
-          backFace.style.display = 'flex'; // Принудительный рендер
-        }
-
         const fitText = (container, textElement) => {
-          let fontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
+          if (!container || !textElement || container.clientHeight === 0) return;
+          
+          // Временно отключаем 3D-переворот, чтобы получить 100% точные цифры от браузера
+          const oldTransform = container.style.transform;
+          const oldTransition = container.style.transition;
+          
+          container.style.transition = 'none';
+          container.style.transform = 'none';
+          
+          // Базовый размер
+          let fontSize = window.innerWidth >= 768 ? 24 : 18.4;
+          textElement.style.fontSize = fontSize + 'px';
+          
           const minFontSize = 12; 
           let safety = 50; 
           
-          // Вычисляем доступную высоту внутри контейнера за вычетом padding
-          const style = window.getComputedStyle(container);
-          const paddingTop = parseFloat(style.paddingTop) || 0;
-          const paddingBottom = parseFloat(style.paddingBottom) || 0;
-          // Оставляем небольшой запас (около 10px), чтобы не было "прилипания"
-          const availableHeight = container.clientHeight - paddingTop - paddingBottom - 10;
-
-          // Проверяем реальную высоту именно текстового блока
-          while (textElement.scrollHeight > availableHeight && fontSize > minFontSize && safety > 0) {
+          // Измеряем физическое переполнение контейнера с учетом всех паддингов и подсказок.
+          // Если контент не влезает (scrollHeight > clientHeight) - сжимаем шрифт.
+          while (container.scrollHeight > container.clientHeight + 2 && fontSize > minFontSize && safety > 0) {
             fontSize -= 0.5;
             textElement.style.fontSize = fontSize + 'px';
             safety--;
           }
+
+          // Возвращаем исходное состояние карточки (с переворотом и анимациями)
+          container.style.transform = oldTransform;
+          container.style.transition = oldTransition;
         };
 
-        if (frontFace && els.cardQuestion) fitText(frontFace, els.cardQuestion);
-        if (backFace && els.cardAnswer) fitText(backFace, els.cardAnswer);
-
-        // Возвращаем все свойства обратно
-        if (backFace) {
-          backFace.style.transform = '';
-          backFace.style.backfaceVisibility = '';
-          backFace.style.display = '';
-          void backFace.offsetHeight; // Принудительный reflow
-          backFace.style.transition = '';
-        }
+        fitText(frontFace, els.cardQuestion);
+        fitText(backFace, els.cardAnswer);
       });
     }
 
