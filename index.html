@@ -677,27 +677,28 @@
     let hasDragged = false;
     let isScrolling = false;
 
-    els.cardWrapper.addEventListener('pointerdown', (e) => {
-      // Игнорируем клики правой кнопкой мыши
-      if (e.button !== 0) return;
+    function handleDragStart(e) {
+      if (e.type === 'mousedown' && e.button !== 0) return;
       isDragging = true;
       hasDragged = false;
       isScrolling = false;
-      startX = e.clientX;
-      startY = e.clientY;
+      
+      startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
       currentX = startX;
       
-      // Убираем плавный переход, чтобы карточка моментально следовала за пальцем
       els.cardWrapper.style.transition = 'none';
-      els.cardWrapper.setPointerCapture(e.pointerId);
-    });
+    }
 
-    els.cardWrapper.addEventListener('pointermove', (e) => {
+    function handleDragMove(e) {
       if (!isDragging) return;
       
-      currentX = e.clientX;
+      const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+      const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+      
+      currentX = clientX;
       const deltaX = currentX - startX;
-      const deltaY = e.clientY - startY;
+      const deltaY = clientY - startY;
 
       // Распознаем, листает ли пользователь текст вниз или свайпает карточку вбок
       if (!hasDragged && !isScrolling) {
@@ -713,7 +714,9 @@
       if (isScrolling) return;
 
       if (hasDragged) {
-        e.preventDefault(); // Блокируем стандартные действия при явном свайпе
+        // Блокируем системные свайпы браузера (например, "назад") только если это точно горизонтальный свайп
+        if (e.cancelable) e.preventDefault(); 
+        
         const rotate = deltaX * 0.05;
         els.cardWrapper.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
         
@@ -729,12 +732,11 @@
           els.badgeLeft.style.opacity = 0;
         }
       }
-    });
+    }
 
-    function endDrag(e) {
+    function handleDragEnd(e) {
       if (!isDragging) return;
       isDragging = false;
-      els.cardWrapper.releasePointerCapture(e.pointerId);
       
       if (isScrolling) return;
 
@@ -757,8 +759,16 @@
       }
     }
 
-    els.cardWrapper.addEventListener('pointerup', endDrag);
-    els.cardWrapper.addEventListener('pointercancel', endDrag);
+    // Слушатели для мыши (для ПК)
+    els.cardWrapper.addEventListener('mousedown', handleDragStart);
+    window.addEventListener('mousemove', handleDragMove, { passive: false });
+    window.addEventListener('mouseup', handleDragEnd);
+
+    // Слушатели для сенсорных экранов (для смартфонов)
+    els.cardWrapper.addEventListener('touchstart', handleDragStart, { passive: true });
+    window.addEventListener('touchmove', handleDragMove, { passive: false });
+    window.addEventListener('touchend', handleDragEnd);
+    window.addEventListener('touchcancel', handleDragEnd);
 
     function handleSwipe(direction) {
       const filtered = getFilteredCards();
