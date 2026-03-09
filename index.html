@@ -43,6 +43,7 @@
       background-color: var(--bg-color);
       overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
+      font-family: system-ui, -apple-system, sans-serif;
     }
 
     @supports (-webkit-touch-callout: none) {
@@ -71,7 +72,6 @@
     .app-container {
       background: linear-gradient(135deg, var(--bg-color) 0%, var(--card-front-bg) 100%);
       color: var(--text-main);
-      font-family: system-ui, -apple-system, sans-serif;
       transition: background 0.3s ease, color 0.3s ease;
       display: flex;
       flex-direction: column;
@@ -317,7 +317,7 @@
       transition: background-color 0.3s ease, border-color 0.3s ease;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
+      overscroll-behavior-y: contain; 
       scrollbar-width: thin;
       scrollbar-color: var(--border-color) transparent;
     }
@@ -325,6 +325,7 @@
       .card-face { padding: 4rem 1.5rem; }
     }
 
+    /* Безопасное центрирование текста */
     .card-face::before {
       content: "";
       margin-top: auto;
@@ -368,7 +369,6 @@
       text-align: center;
       word-wrap: break-word;
       overflow-wrap: break-word;
-      /* Отключена плавная анимация шрифта, чтобы скрипт масштабирования работал мгновенно и точно */
       flex-shrink: 0; 
       margin: 0;
     }
@@ -383,6 +383,7 @@
       animation: pulse 2s infinite;
     }
 
+    /* Подсказки при свайпе (Tinder-like) */
     .swipe-badge {
       position: absolute;
       top: 2rem;
@@ -493,11 +494,6 @@
       <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
       </symbol>
-      <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-        <polyline points="17 8 12 3 7 8"></polyline>
-        <line x1="12" y1="3" x2="12" y2="15"></line>
-      </symbol>
       <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
         <polyline points="22 4 12 14.01 9 11.01"></polyline>
@@ -553,11 +549,6 @@
         <button class="btn btn-icon btn-blue" id="btn-fullscreen" title="Полноэкранный режим">
           <svg class="icon"><use id="fullscreen-icon-use" href="#icon-maximize"></use></svg>
         </button>
-        <button class="btn" id="btn-upload">
-          <svg class="icon icon-sm"><use href="#icon-upload"></use></svg>
-          Загрузить
-        </button>
-        <input type="file" accept=".csv" id="file-input" style="display: none;" />
       </div>
     </div>
 
@@ -611,6 +602,7 @@
   </div>
 
   <script>
+    // Жесткая блокировка системного скролла для предотвращения bounce-эффекта
     document.addEventListener('touchmove', function(e) {
       const isScrollable = e.target.closest('.card-face, .tabs-wrapper');
       if (!isScrollable) {
@@ -618,6 +610,7 @@
       }
     }, { passive: false });
 
+    // База карточек
     const defaultCards = [
       { id: '1', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что регулирует гражданское право?', answer: 'Имущественные и личные неимущественные отношения, основанные на равенстве сторон.' },
       { id: '2', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Кто является субъектами гражданского права?', answer: 'К ним относятся: физические лица, юридические лица и публично-правовые образования.' },
@@ -709,9 +702,6 @@
       btnTheme: document.getElementById('btn-theme'),
       btnFullscreen: document.getElementById('btn-fullscreen'),
       fullscreenIconUse: document.getElementById('fullscreen-icon-use'),
-      fileStatusText: document.getElementById('file-status-text'),
-      fileInput: document.getElementById('file-input'),
-      btnUpload: document.getElementById('btn-upload'),
       emptyState: document.getElementById('empty-state'),
       mainContent: document.getElementById('main-content'),
       btnNext: document.getElementById('btn-next'),
@@ -768,41 +758,67 @@
       if (els.startScreen.classList.contains('hidden') === false) return;
       
       requestAnimationFrame(() => {
+        const currentCard = getFilteredCards()[currentIndex];
+        if (!currentCard) return;
+
         const frontFace = document.querySelector('.card-front');
         const backFace = document.querySelector('.card-back');
+        if (!frontFace || !backFace) return;
 
-        const fitText = (container, textElement) => {
+        let measurer = document.getElementById('text-measurer');
+        if (!measurer) {
+          measurer = document.createElement('div');
+          measurer.id = 'text-measurer';
+          measurer.style.position = 'absolute';
+          measurer.style.visibility = 'hidden';
+          measurer.style.pointerEvents = 'none';
+          measurer.style.left = '-9999px';
+          measurer.style.top = '-9999px';
+          measurer.style.wordWrap = 'break-word';
+          measurer.style.overflowWrap = 'break-word';
+          measurer.style.textAlign = 'center';
+          measurer.style.lineHeight = '1.5';
+          measurer.style.fontFamily = 'system-ui, -apple-system, sans-serif';
+          measurer.style.margin = '0';
+          document.body.appendChild(measurer);
+        }
+
+        const fitText = (container, textElement, text, isBack) => {
           if (!container || !textElement || container.clientHeight === 0) return;
-          
-          // Временно отключаем 3D-переворот, чтобы получить 100% точные цифры от браузера
-          const oldTransform = container.style.transform;
-          const oldTransition = container.style.transition;
-          
-          container.style.transition = 'none';
-          container.style.transform = 'none';
-          
-          // Базовый размер
+
+          const style = window.getComputedStyle(container);
+          const paddingX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+          const paddingY = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+
+          measurer.style.width = (container.clientWidth - paddingX) + 'px';
+          measurer.style.fontWeight = isBack ? '500' : '600';
+          measurer.textContent = text;
+
+          let maxAllowedHeight = container.clientHeight - paddingY - 10; 
+
+          if (isBack && els.cardTopicHint.style.display !== 'none') {
+            const hintStyle = window.getComputedStyle(els.cardTopicHint);
+            const hintHeight = els.cardTopicHint.offsetHeight + parseFloat(hintStyle.marginTop) + parseFloat(hintStyle.marginBottom);
+            maxAllowedHeight -= hintHeight;
+          }
+
           let fontSize = window.innerWidth >= 768 ? 24 : 18.4;
-          textElement.style.fontSize = fontSize + 'px';
-          
+          measurer.style.fontSize = fontSize + 'px';
+
           const minFontSize = 12; 
           let safety = 50; 
           
-          // Измеряем физическое переполнение контейнера с учетом всех паддингов и подсказок.
-          // Если контент не влезает (scrollHeight > clientHeight) - сжимаем шрифт.
-          while (container.scrollHeight > container.clientHeight + 2 && fontSize > minFontSize && safety > 0) {
+          while (measurer.scrollHeight > maxAllowedHeight && fontSize > minFontSize && safety > 0) {
             fontSize -= 0.5;
-            textElement.style.fontSize = fontSize + 'px';
+            measurer.style.fontSize = fontSize + 'px';
             safety--;
           }
 
-          // Возвращаем исходное состояние карточки (с переворотом и анимациями)
-          container.style.transform = oldTransform;
-          container.style.transition = oldTransition;
+          textElement.style.fontSize = fontSize + 'px';
         };
 
-        fitText(frontFace, els.cardQuestion);
-        fitText(backFace, els.cardAnswer);
+        fitText(frontFace, els.cardQuestion, currentCard.question, false);
+        fitText(backFace, els.cardAnswer, currentCard.answer, true);
       });
     }
 
@@ -837,6 +853,7 @@
         els.cardAnswer.textContent = currentCard.answer;
         els.statusText.textContent = `Карточка ${currentIndex + 1} из ${filtered.length}`;
 
+        // Логика лаконичной подсказки
         if (currentCard.topic) {
           const match = currentCard.topic.match(/^(Тема\s*\d+\.?)/i);
           const shortTopic = match ? match[1] : currentCard.topic;
@@ -1088,86 +1105,6 @@
         els.themeIconUse.setAttribute('href', '#icon-moon');
       }
     });
-
-    els.btnUpload.addEventListener('click', () => els.fileInput.click());
-    
-    els.fileInput.addEventListener('change', (e) => {
-      const file = e.target.files[0];
-      if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const text = event.target.result;
-        const parsed = parseCSV(text);
-        if (parsed.length > 0) {
-          cards = parsed;
-          learnedIds.clear();
-          currentIndex = 0;
-          isFlipped = false;
-          els.cardWrapper.classList.remove('flipped');
-          els.fileStatusText.textContent = `Загружен файл: ${file.name}`;
-          updateUI();
-        } else {
-          alert('Не удалось распознать карточки. Убедитесь, что формат правильный.');
-        }
-      };
-      reader.readAsText(file);
-    });
-
-    function parseCSV(text) {
-      const result = [];
-      let row = [];
-      let inQuotes = false;
-      let currentVal = '';
-      
-      for (let i = 0; i < text.length; i++) {
-        const char = text[i];
-        if (inQuotes) {
-          if (char === '"' && text[i + 1] === '"') {
-            currentVal += '"';
-            i++;
-          } else if (char === '"') {
-            inQuotes = false;
-          } else {
-            currentVal += char;
-          }
-        } else {
-          if (char === '"') {
-            inQuotes = true;
-          } else if (char === ',') {
-            row.push(currentVal.trim());
-            currentVal = '';
-          } else if (char === '\n' || char === '\r') {
-            row.push(currentVal.trim());
-            if (row.length >= 2 && row[0] && row[1]) {
-              result.push({ 
-                id: Date.now() + Math.random().toString(), 
-                question: row[0], 
-                answer: row[1],
-                topic: row[2] ? row[2] : '' 
-              });
-            }
-            row = [];
-            currentVal = '';
-            if (char === '\r' && text[i + 1] === '\n') i++;
-          } else {
-            currentVal += char;
-          }
-        }
-      }
-      if (currentVal || row.length > 0) {
-        row.push(currentVal.trim());
-        if (row.length >= 2 && row[0] && row[1]) {
-          result.push({ 
-            id: Date.now() + Math.random().toString(), 
-            question: row[0], 
-            answer: row[1],
-            topic: row[2] ? row[2] : ''
-          });
-        }
-      }
-      return result;
-    }
 
     updateUI();
   </script>
