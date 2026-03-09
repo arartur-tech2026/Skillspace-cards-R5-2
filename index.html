@@ -314,7 +314,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       padding: 4rem 1.5rem;
       border-radius: 1rem;
       border-top: 4px solid;
@@ -357,7 +356,7 @@
       font-weight: 600; 
       line-height: 1.5; 
       width: 100%;
-      margin: 0;
+      margin: auto 0; /* Безопасное центрирование, которое не обрезает текст сверху */
       word-wrap: break-word;
       overflow-wrap: break-word;
       transition: font-size 0.2s ease;
@@ -773,18 +772,31 @@
         const frontFace = document.querySelector('.card-front');
         const backFace = document.querySelector('.card-back');
 
+        // Исправление для Safari/iOS: временно отключаем 3D-поворот задней стороны.
+        // Без этого Safari возвращает неправильную высоту (scrollHeight) для перевернутых элементов.
+        if (backFace) {
+          backFace.style.transform = 'rotateX(0deg)';
+        }
+
         const fitText = (container, textElement) => {
           let fontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
           const minFontSize = 12; 
+          let safety = 50; // Защита от бесконечного цикла
 
-          while (container.scrollHeight > container.clientHeight && fontSize > minFontSize) {
+          while (container.scrollHeight > container.clientHeight && fontSize > minFontSize && safety > 0) {
             fontSize -= 0.5;
             textElement.style.fontSize = fontSize + 'px';
+            safety--;
           }
         };
 
         if (frontFace && els.cardQuestion) fitText(frontFace, els.cardQuestion);
         if (backFace && els.cardAnswer) fitText(backFace, els.cardAnswer);
+
+        // Возвращаем 3D-поворот обратно (пустая строка вернет значение из CSS: rotateX(180deg))
+        if (backFace) {
+          backFace.style.transform = '';
+        }
       });
     }
 
