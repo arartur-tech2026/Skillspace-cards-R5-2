@@ -33,20 +33,24 @@
 
     * { box-sizing: border-box; }
     
-    /* Жесткая фиксация размеров для iPad/Safari */
+    /* Специфичные фиксы для Safari/iPadOS */
     html, body {
       margin: 0;
       padding: 0;
       width: 100%;
       height: 100%;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
+      height: 100dvh;
+      overflow: hidden; /* Полностью отключаем системный скролл */
       background-color: var(--bg-color);
       overscroll-behavior: none;
       -webkit-text-size-adjust: 100%;
+    }
+
+    /* Хак для корректной высоты в мобильном Safari (убирает щель 5-7мм) */
+    @supports (-webkit-touch-callout: none) {
+      html, body {
+        height: -webkit-fill-available;
+      }
     }
 
     :-webkit-full-screen {
@@ -55,12 +59,19 @@
       background-color: var(--bg-color);
     }
 
-    /* Основной контейнер приложения всегда занимает 100% */
-    .app-container {
+    /* Контейнеры жестко привязаны к краям */
+    .start-screen-overlay, .app-container {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
       width: 100%;
       height: 100%;
+      overflow: hidden;
+    }
+
+    .app-container {
       background: linear-gradient(135deg, var(--bg-color) 0%, var(--card-front-bg) 100%);
       color: var(--text-main);
       font-family: system-ui, -apple-system, sans-serif;
@@ -69,14 +80,10 @@
       flex-direction: column;
       align-items: center;
       padding: 1.5rem 1rem;
-      overflow: hidden;
       z-index: 1;
     }
 
-    /* Чистый стартовый экран поверх всего */
     .start-screen-overlay {
-      position: absolute;
-      inset: 0;
       background-color: #ffffff;
       display: flex;
       flex-direction: column;
@@ -84,8 +91,6 @@
       justify-content: center;
       z-index: 9999;
       gap: 3rem;
-      width: 100%;
-      height: 100%;
       transition: opacity 0.4s ease, visibility 0.4s ease;
     }
     [data-theme="dark"] .start-screen-overlay {
@@ -165,13 +170,11 @@
       gap: 0.75rem;
     }
 
-    /* Typography & Icons */
     .icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
     .icon-sm { width: 1rem; height: 1rem; }
     .icon-lg { width: 1.75rem; height: 1.75rem; }
     .text-success { color: var(--success); }
 
-    /* Buttons */
     .btn {
       display: inline-flex;
       align-items: center;
@@ -201,12 +204,13 @@
       border-color: var(--accent-hover);
     }
 
-    /* Horizontal Scroll Tabs */
+    /* Tabs */
     .tabs-wrapper {
       width: 100%;
       max-width: 800px;
       overflow-x: auto;
       -webkit-overflow-scrolling: touch;
+      overscroll-behavior-x: contain;
       scrollbar-width: none;
       margin-bottom: 1.5rem;
       flex-shrink: 0;
@@ -236,7 +240,6 @@
       border-color: var(--accent);
     }
 
-    /* Main content area */
     #main-content {
       width: 100%;
       display: flex;
@@ -246,7 +249,6 @@
       justify-content: flex-start;
     }
 
-    /* Status text */
     .status-text {
       font-size: 0.875rem;
       color: var(--text-muted);
@@ -297,9 +299,10 @@
       border-top: 4px solid;
       transition: background-color 0.3s ease, border-color 0.3s ease;
       overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain; /* Блокирует передачу скролла родителям */
       scrollbar-width: thin;
       scrollbar-color: var(--border-color) transparent;
-      -webkit-overflow-scrolling: touch;
     }
 
     .card-face::-webkit-scrollbar { width: 6px; }
@@ -502,7 +505,7 @@
     <button class="btn-start" id="btn-big-start">Начать</button>
   </div>
 
-  <!-- Основной контент (всегда отрендерен под слоем старта, чтобы избежать багов iPad Safari) -->
+  <!-- Основной контент (отрендерен, но скрыт слоем старта) -->
   <div class="app-container" id="app-container">
     <div class="header">
       <div>
@@ -578,6 +581,15 @@
   </div>
 
   <script>
+    // Жесткая блокировка системного скролла (bounce-эффекта) на iOS
+    document.addEventListener('touchmove', function(e) {
+      // Разрешаем скролл только внутри карточки и вкладок
+      const isScrollable = e.target.closest('.card-face, .tabs-wrapper');
+      if (!isScrollable) {
+        if (e.cancelable) e.preventDefault();
+      }
+    }, { passive: false });
+
     // База карточек
     const defaultCards = [
       { id: '1', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что регулирует гражданское право?', answer: 'Имущественные и личные неимущественные отношения, основанные на равенстве сторон.' },
@@ -696,7 +708,6 @@
 
     els.btnBigStart.addEventListener('click', () => {
       requestFullScreenSafe(document.documentElement);
-      // Скрываем оверлей с кнопкой
       els.startScreen.classList.add('hidden');
       updateUI();
       scaleTextToFit();
@@ -726,6 +737,8 @@
     document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
 
     function scaleTextToFit() {
+      if (els.startScreen.classList.contains('hidden') === false) return;
+      
       requestAnimationFrame(() => {
         els.cardQuestion.style.fontSize = '';
         els.cardAnswer.style.fontSize = '';
