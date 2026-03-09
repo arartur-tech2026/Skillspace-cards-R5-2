@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Право (Часть 2) – Карточки</title>
+  <style>
+    :root {
+      --bg-color: #f8fafc;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --card-front-bg: #ffffff;
+      --card-back-bg: #eff6ff;
+      --border-color: #e2e8f0;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --success: #10b981;
+      --shadow-color: rgba(0, 0, 0, 0.08);
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #0f172a;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --card-front-bg: #1e293b;
+      --card-back-bg: #172554;
+      --border-color: #334155;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --success: #34d399;
+      --shadow-color: rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 0; }
+
+    .app-container {
+      min-height: 100vh;
+      background: linear-gradient(135deg, var(--bg-color) 0%, var(--card-front-bg) 100%);
+      color: var(--text-main);
+      font-family: system-ui, -apple-system, sans-serif;
+      transition: background 0.3s ease, color 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1.5rem 1rem;
+    }
+
+    /* Header */
+    .header {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (min-width: 768px) {
+      .header {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+
+    .header-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 0.5rem 0; }
+    .header-subtitle { font-size: 0.875rem; color: var(--text-muted); display: flex; align-items: center; gap: 0.5rem; margin: 0; }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    /* Typography & Icons */
+    .icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; }
+    .icon-sm { width: 1rem; height: 1rem; }
+    .icon-lg { width: 1.75rem; height: 1.75rem; }
+    .text-success { color: var(--success); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      border: 1px solid var(--border-color);
+      background: var(--card-front-bg);
+      color: var(--text-main);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn:hover { border-color: var(--accent); }
+    .btn-icon { padding: 0.5rem; border-radius: 0.5rem; }
+    
+    /* Синяя кнопка для полноэкранного режима */
+    .btn.btn-blue {
+      background-color: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+    .btn.btn-blue:hover {
+      background-color: var(--accent-hover);
+      border-color: var(--accent-hover);
+    }
+
+    /* Horizontal Scroll Tabs */
+    .tabs-wrapper {
+      width: 100%;
+      max-width: 800px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      margin-bottom: 2rem;
+    }
+    .tabs-wrapper::-webkit-scrollbar { display: none; }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      padding-bottom: 0.5rem;
+    }
+    .tab {
+      white-space: nowrap;
+      padding: 0.5rem 1rem;
+      border-radius: 999px;
+      background: var(--card-front-bg);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s ease;
+    }
+    .tab.active {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    /* Status text */
+    .status-text {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      font-weight: 500;
+      margin-bottom: 1.5rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* Card */
+    .card-wrapper {
+      width: 100%;
+      max-width: 600px;
+      height: 320px;
+      perspective: 1000px;
+      cursor: pointer;
+      margin-bottom: 2.5rem;
+    }
+    @media (min-width: 768px) { .card-wrapper { height: 384px; } }
+
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+      transform-style: preserve-3d;
+      box-shadow: 0 10px 25px var(--shadow-color);
+      border-radius: 1rem;
+    }
+    .card-wrapper.flipped .card-inner { transform: rotateX(180deg); }
+
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 1.5rem;
+      border-radius: 1rem;
+      border-top: 4px solid;
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: var(--border-color) transparent;
+    }
+
+    .card-face::-webkit-scrollbar { width: 6px; }
+    .card-face::-webkit-scrollbar-track { background: transparent; }
+    .card-face::-webkit-scrollbar-thumb { background-color: var(--border-color); border-radius: 10px; }
+
+    .card-front {
+      background: var(--card-front-bg);
+      border-top-color: var(--accent);
+    }
+    .card-back {
+      background: var(--card-back-bg);
+      border-top-color: var(--success);
+      transform: rotateX(180deg);
+    }
+
+    .card-label {
+      position: absolute;
+      top: 1.25rem;
+      left: 1.25rem;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .card-front .card-label { color: var(--accent); }
+    .card-back .card-label { color: var(--success); }
+
+    .card-content { 
+      font-size: 1.25rem; 
+      font-weight: 600; 
+      line-height: 1.5; 
+      width: 100%;
+      margin: 0;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      transition: font-size 0.2s ease;
+    }
+    @media (min-width: 768px) { .card-content { font-size: 1.5rem; } }
+    .card-back .card-content { font-weight: 500; color: var(--text-main); }
+
+    .card-hint {
+      position: absolute;
+      bottom: 1.25rem;
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      animation: pulse 2s infinite;
+    }
+
+    /* Лаконичная подсказка с номером темы */
+    .card-topic-hint {
+      margin-top: 1.5rem;
+      padding-top: 1rem;
+      border-top: 1px dashed var(--border-color);
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      width: 100%;
+      justify-content: center;
+      text-align: center;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Controls */
+    .controls {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    @media (min-width: 768px) { .controls { gap: 1.5rem; } }
+
+    .btn-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background: var(--card-front-bg);
+      color: var(--text-main);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-control:hover { transform: scale(1.05); border-color: var(--accent); }
+
+    .btn-nav { width: 3rem; height: 3rem; }
+    .btn-action { width: 3rem; height: 3rem; color: var(--text-muted); }
+    .btn-action.active { background: var(--success); color: #fff; border-color: var(--success); }
+
+    .btn-main {
+      width: 3.5rem; height: 3.5rem;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      box-shadow: 0 4px 10px var(--shadow-color);
+    }
+    .btn-main:hover { background: var(--accent-hover); }
+    @media (min-width: 768px) {
+      .btn-nav, .btn-action { width: 3.5rem; height: 3.5rem; }
+      .btn-main { width: 4rem; height: 4rem; }
+    }
+
+    .empty-state {
+      padding: 3rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 1.125rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Библиотека inline SVG-иконок -->
+  <svg style="display: none;">
+    <defs>
+      <symbol id="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="5"></circle>
+        <line x1="12" y1="1" x2="12" y2="3"></line>
+        <line x1="12" y1="21" x2="12" y2="23"></line>
+        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+        <line x1="1" y1="12" x2="3" y2="12"></line>
+        <line x1="21" y1="12" x2="23" y2="12"></line>
+        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+      </symbol>
+      <symbol id="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+      </symbol>
+      <symbol id="icon-upload" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="17 8 12 3 7 8"></polyline>
+        <line x1="12" y1="3" x2="12" y2="15"></line>
+      </symbol>
+      <symbol id="icon-check-circle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </symbol>
+      <symbol id="icon-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="20 6 9 17 4 12"></polyline>
+      </symbol>
+      <symbol id="icon-shuffle" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="16 3 21 3 21 8"></polyline>
+        <line x1="4" y1="20" x2="21" y2="3"></line>
+        <polyline points="21 16 21 21 16 21"></polyline>
+        <line x1="15" y1="15" x2="21" y2="21"></line>
+        <line x1="4" y1="4" x2="9" y2="9"></line>
+      </symbol>
+      <symbol id="icon-prev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </symbol>
+      <symbol id="icon-next" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </symbol>
+      <symbol id="icon-book" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+      </symbol>
+      <symbol id="icon-maximize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path>
+      </symbol>
+      <symbol id="icon-minimize" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"></path>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="app-container">
+    <!-- Шапка -->
+    <div class="header">
+      <div>
+        <h1 class="header-title">Раздел 5. Право (Часть 2)</h1>
+        <p class="header-subtitle" id="header-subtitle">
+          <svg class="icon icon-sm text-success"><use href="#icon-check-circle"></use></svg>
+          <span id="file-status-text">Встроена полная база: раздел 5, часть 2 (62 термина)</span>
+        </p>
+      </div>
+      
+      <div class="header-actions">
+        <button class="btn btn-icon" id="btn-theme" title="Переключить тему">
+          <svg class="icon"><use id="theme-icon-use" href="#icon-moon"></use></svg>
+        </button>
+        <!-- Синяя кнопка для перехода в полноэкранный режим -->
+        <button class="btn btn-icon btn-blue" id="btn-fullscreen" title="Полноэкранный режим">
+          <svg class="icon"><use id="fullscreen-icon-use" href="#icon-maximize"></use></svg>
+        </button>
+        <button class="btn" id="btn-upload">
+          <svg class="icon icon-sm"><use href="#icon-upload"></use></svg>
+          Загрузить
+        </button>
+        <input type="file" accept=".csv" id="file-input" style="display: none;" />
+      </div>
+    </div>
+
+    <!-- Навигация (вкладки) -->
+    <div class="tabs-wrapper">
+      <div class="tabs" id="tabs-container">
+        <button class="tab active" data-tab="all" id="tab-all">Все термины (0)</button>
+        <button class="tab" data-tab="learning" id="tab-learning">Осталось выучить (0)</button>
+        <button class="tab" data-tab="learned" id="tab-learned">Выученные (0)</button>
+      </div>
+    </div>
+
+    <!-- Карточка и элементы управления -->
+    <div id="main-content" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <div class="status-text" id="status-text">Карточка 1 из 0</div>
+
+      <div class="card-wrapper" id="card-wrapper">
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <span class="card-label">Вопрос</span>
+            <h2 class="card-content" id="card-question"></h2>
+            <p class="card-hint">Нажмите, чтобы перевернуть</p>
+          </div>
+          <div class="card-face card-back">
+            <span class="card-label">Ответ</span>
+            <p class="card-content" id="card-answer"></p>
+            <div class="card-topic-hint" id="card-topic-hint"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls" id="controls">
+        <button class="btn-control btn-action" id="btn-shuffle" title="Перемешать все">
+          <svg class="icon"><use href="#icon-shuffle"></use></svg>
+        </button>
+        <button class="btn-control btn-nav" id="btn-prev" title="Предыдущая">
+          <svg class="icon"><use href="#icon-prev"></use></svg>
+        </button>
+        <button class="btn-control btn-main" id="btn-next" title="Следующая">
+          <svg class="icon icon-lg"><use href="#icon-next"></use></svg>
+        </button>
+        <button class="btn-control btn-action" id="btn-check" title="Отметить как выученное">
+          <svg class="icon"><use href="#icon-check"></use></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Пустое состояние -->
+    <div class="empty-state" id="empty-state">
+      В этой категории пока нет карточек.
+    </div>
+  </div>
+
+  <script>
+    // База карточек по разделу 5, часть 2 (62 термина)
+    const defaultCards = [
+      { id: '1', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что регулирует гражданское право?', answer: 'Имущественные и личные неимущественные отношения, основанные на равенстве сторон.' },
+      { id: '2', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Кто является субъектами гражданского права?', answer: 'К ним относятся: физические лица, юридические лица и публично-правовые образования.' },
+      { id: '3', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое юридическое лицо?', answer: 'Организация, которая имеет обособленное имущество и отвечает им по своим обязательства.' },
+      { id: '4', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое сделка?', answer: 'Действия граждан и юридических лиц, направленные на установление, изменение или прекращение гражданских прав и обязанностей.' },
+      { id: '5', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое договор?', answer: 'Соглашение двух или нескольких лиц об установлении, изменении или прекращении гражданских прав и обязанностей.' },
+      { id: '6', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое право собственности?', answer: 'Совокупность прав владения, пользования и распоряжения имуществом.' },
+      { id: '7', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое право владения?', answer: 'Фактическое обладание вещью.' },
+      { id: '8', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое право пользования?', answer: 'Возможность извлекать из вещи ее полезные свойства.' },
+      { id: '9', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое право распоряжения?', answer: 'Возможность определять юридическую судьбу вещи (продавать, дарить, завещать).' },
+      { id: '10', topic: 'Тема 9. ГРАЖДАНСКОЕ ПРАВО', question: 'Что такое наследование?', answer: 'Переход имущества, прав и связанных с ними обязанностей умершего лица к его наследникам.' },
+      { id: '11', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Что регулирует трудовое право?', answer: 'Отношения между работником и работодателем, основанные на трудовом договоре.' },
+      { id: '12', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Что такое трудовой договор?', answer: 'Соглашение между работодателем и работником, определяющее их взаимные права и обязанности.' },
+      { id: '13', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'С какого возраста по общему правилу допускается заключение трудового договора?', answer: 'С 16 лет.' },
+      { id: '14', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Какова нормальная продолжительность рабочего времени в РФ?', answer: 'Не более 40 часов в неделю.' },
+      { id: '15', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Для кого устанавливается сокращенная продолжительность рабочего времени?', answer: 'К ним относятся: несовершеннолетние, инвалиды и работники с вредными условиями труда.' },
+      { id: '16', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Что такое испытательный срок?', answer: 'Период времени, в течение которого работодатель проверяет соответствие работника поручаемой работе (по общему правилу – не более 3 месяцев).' },
+      { id: '17', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Назовите основные виды времени отдыха по Трудовому кодексу РФ.', answer: 'К ним относятся: перерывы в течение рабочего дня, выходные дни, праздничные дни, отпуска.' },
+      { id: '18', topic: 'Тема 10. ТРУДОВОЕ ПРАВО', question: 'Что такое дисциплинарный проступок?', answer: 'Неисполнение или ненадлежащее исполнение работником по его вине возложенных на него трудовых обязанностей.' },
+      { id: '19', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Что регулирует уголовное право?', answer: 'Общественные отношения, связанные с совершением преступлений и назначением наказания.' },
+      { id: '20', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Что является единственным источником уголовного права в РФ?', answer: 'Уголовный кодекс Российской Федерации (УК РФ).' },
+      { id: '21', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Что такое преступление?', answer: 'Виновно совершенное общественно опасное деяние, запрещенное Уголовным кодексом под угрозой наказания.' },
+      { id: '22', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'С какого возраста наступает общая уголовная ответственность?', answer: 'С 16 лет.' },
+      { id: '23', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'С какого возраста наступает уголовная ответственность за особо тяжкие преступления (убийство, кража, разбой)?', answer: 'С 14 лет.' },
+      { id: '24', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Что такое соучастие в преступлении?', answer: 'Умышленное совместное участие двух или более лиц в совершении умышленного преступления.' },
+      { id: '25', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Назовите виды соучастников преступления.', answer: 'К ним относятся: исполнитель, организатор, подстрекатель, пособник.' },
+      { id: '26', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Что такое необходимая оборона?', answer: 'Правомерная защита личности и прав обороняющегося от общественно опасного посягательства.' },
+      { id: '27', topic: 'Тема 11. УГОЛОВНОЕ ПРАВО', question: 'Назовите основные виды уголовных наказаний.', answer: 'К ним относятся: штраф, обязательные работы, исправительные работы, лишение свободы.' },
+      { id: '28', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'Что регулирует административное право?', answer: 'Общественные отношения в сфере государственного управления и деятельности исполнительной власти.' },
+      { id: '29', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'Что такое административное правонарушение?', answer: 'Противоправное, виновное действие или бездействие, за которое установлена административная ответственность.' },
+      { id: '30', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'С какого возраста наступает административная ответственность?', answer: 'С 16 лет.' },
+      { id: '31', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'Приведите примеры административных правонарушений.', answer: 'К ним относятся: нарушение правил дорожного движения, мелкое хулиганство, безбилетный проезд.' },
+      { id: '32', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'Что такое административное наказание?', answer: 'Установленная государством мера ответственности за совершение административного правонарушения.' },
+      { id: '33', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'Назовите виды административных наказаний.', answer: 'К ним относятся: предупреждение, административный штраф, лишение специального права, административный арест.' },
+      { id: '34', topic: 'Тема 12. АДМИНИСТРАТИВНОЕ ПРАВО', question: 'Кем применяются административные наказания?', answer: 'Судами, органами внутренних дел (полицией), налоговыми и таможенными органами.' },
+      { id: '35', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Что такое процессуальное право?', answer: 'Нормы, определяющие порядок (процедуру) применения норм материального права и разрешения споров.' },
+      { id: '36', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Что такое гражданский процесс?', answer: 'Порядок рассмотрения и разрешения гражданских дел в суде.' },
+      { id: '37', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Кто является сторонами в гражданском процессе?', answer: 'Истец (тот, кто подает иск) и ответчик (к кому предъявлен иск).' },
+      { id: '38', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Что такое уголовный процесс?', answer: 'Деятельность органов дознания, следствия, прокуратуры и суда по расследованию и разрешению уголовных дел.' },
+      { id: '39', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Кто выступает на стороне обвинения в уголовном процессе?', answer: 'К ним относятся: прокурор, следователь, дознаватель, потерпевший.' },
+      { id: '40', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Кто выступает на стороне защиты в уголовном процессе?', answer: 'К ним относятся: подозреваемый, обвиняемый, подсудимый, защитник (адвокат).' },
+      { id: '41', topic: 'Тема 13. ПРОЦЕССУАЛЬНОЕ ПРАВО', question: 'Что такое презумпция невиновности?', answer: 'Принцип, согласно которому обвиняемый считается невиновным, пока его вина не будет доказана в законном порядке.' },
+      { id: '42', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Что такое гражданство?', answer: 'Устойчивая политико-правовая связь человека с государством, выражающаяся в совокупности их взаимных прав и обязанностей.' },
+      { id: '43', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Каковы основные принципы гражданства РФ?', answer: 'Гражданство является единым и равным независимо от оснований его приобретения.' },
+      { id: '44', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Может ли гражданин РФ быть лишен своего гражданства или права изменить его?', answer: 'Нет, это прямо запрещено Конституцией РФ.' },
+      { id: '45', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Что такое филиация?', answer: 'Приобретение гражданства по рождению.' },
+      { id: '46', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Что такое натурализация?', answer: 'Прием в гражданство иностранного гражданина или лица без гражданства по их заявлению.' },
+      { id: '47', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Каков общий срок проживания в РФ для приема в гражданство (натурализации)?', answer: 'Пять лет непрерывно с момента получения вида на жительство.' },
+      { id: '48', topic: 'Тема 14. ГРАЖДАНСТВО', question: 'Кто такие апатриды?', answer: 'Лица без гражданства.' },
+      { id: '49', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'Что такое правоохранительные органы?', answer: 'Государственные органы, основной функцией которых является охрана законности и правопорядка, защита прав и свобод человека.' },
+      { id: '50', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'Назовите основные правоохранительные органы РФ.', answer: 'К ним относятся: суд, прокуратура, полиция, следственный комитет, адвокатура, нотариат.' },
+      { id: '51', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'В чем заключается основная функция прокуратуры?', answer: 'В осуществлении надзора за точным и единообразным исполнением законов.' },
+      { id: '52', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'Каковы функции полиции?', answer: 'Защита жизни, здоровья и имущества граждан, охрана общественного порядка, раскрытие преступлений.' },
+      { id: '53', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'Для чего нужна адвокатура?', answer: 'Для оказания квалифицированной юридической помощи физическим и юридическим лицам.' },
+      { id: '54', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'Каковы функции нотариата?', answer: 'Удостоверение сделок, оформление наследственных прав и заверение копий документов.' },
+      { id: '55', topic: 'Тема 15. ПРАВООХРАНИТЕЛЬНЫЕ ОРГАНЫ И СУДЕБНАЯ СИСТЕМА', question: 'В чем исключительность судебной власти?', answer: 'Правосудие в РФ осуществляется только судом, никто другой не может признать человека виновным в преступлении.' },
+      { id: '56', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Что такое международное право?', answer: 'Система юридических норм, регулирующих отношения между государствами и международными организациями.' },
+      { id: '57', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Что является основным источником международного права?', answer: 'Международный договор (соглашение) и международный обычай.' },
+      { id: '58', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Что такое международное гуманитарное право?', answer: 'Отрасль международного права, регулирующая правила ведения вооруженных конфликтов и защищающая жертв войны.' },
+      { id: '59', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Какова главная цель международного гуманитарного права?', answer: 'Гуманизация вооруженных конфликтов и ограничение использования жестоких средств ведения войны.' },
+      { id: '60', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Кого защищает международное гуманитарное право?', answer: 'Мирное население, раненых, больных и военнопленных.' },
+      { id: '61', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Назовите основные принципы международного права.', answer: 'К ним относятся: суверенное равенство государств, неприменение силы, нерушимость границ, мирное разрешение споров.' },
+      { id: '62', topic: 'Тема 16. МЕЖДУНАРОДНОЕ ПРАВО', question: 'Какая международная организация играет главную роль в поддержании мира и безопасности?', answer: 'Организация Объединенных Наций (ООН).' }
+    ];
+
+    // Состояние приложения
+    let cards = [...defaultCards];
+    let learnedIds = new Set();
+    let activeTab = 'all';
+    let currentIndex = 0;
+    let isFlipped = false;
+    let theme = 'light';
+
+    // DOM-элементы
+    const els = {
+      cardWrapper: document.getElementById('card-wrapper'),
+      cardQuestion: document.getElementById('card-question'),
+      cardAnswer: document.getElementById('card-answer'),
+      cardTopicHint: document.getElementById('card-topic-hint'),
+      tabAll: document.getElementById('tab-all'),
+      tabLearning: document.getElementById('tab-learning'),
+      tabLearned: document.getElementById('tab-learned'),
+      statusText: document.getElementById('status-text'),
+      btnCheck: document.getElementById('btn-check'),
+      themeIconUse: document.getElementById('theme-icon-use'),
+      btnTheme: document.getElementById('btn-theme'),
+      btnFullscreen: document.getElementById('btn-fullscreen'),
+      fullscreenIconUse: document.getElementById('fullscreen-icon-use'),
+      fileStatusText: document.getElementById('file-status-text'),
+      fileInput: document.getElementById('file-input'),
+      btnUpload: document.getElementById('btn-upload'),
+      emptyState: document.getElementById('empty-state'),
+      mainContent: document.getElementById('main-content'),
+      btnNext: document.getElementById('btn-next'),
+      btnPrev: document.getElementById('btn-prev'),
+      btnShuffle: document.getElementById('btn-shuffle')
+    };
+
+    // Функция масштабирования текста под размер карточки
+    function scaleTextToFit() {
+      requestAnimationFrame(() => {
+        els.cardQuestion.style.fontSize = '';
+        els.cardAnswer.style.fontSize = '';
+
+        const frontFace = document.querySelector('.card-front');
+        const backFace = document.querySelector('.card-back');
+
+        const fitText = (container, textElement) => {
+          let fontSize = parseFloat(window.getComputedStyle(textElement).fontSize);
+          const minFontSize = 14; 
+
+          while (container.scrollHeight > container.clientHeight && fontSize > minFontSize) {
+            fontSize -= 0.5;
+            textElement.style.fontSize = fontSize + 'px';
+          }
+        };
+
+        fitText(frontFace, els.cardQuestion);
+        fitText(backFace, els.cardAnswer);
+      });
+    }
+
+    window.addEventListener('resize', scaleTextToFit);
+
+    // Фильтрация
+    function getFilteredCards() {
+      return cards.filter(card => {
+        if (activeTab === 'learned') return learnedIds.has(card.id);
+        if (activeTab === 'learning') return !learnedIds.has(card.id);
+        return true;
+      });
+    }
+
+    // Обновление интерфейса
+    function updateUI() {
+      els.tabAll.textContent = `Все термины (${cards.length})`;
+      els.tabLearning.textContent = `Осталось выучить (${cards.length - learnedIds.size})`;
+      els.tabLearned.textContent = `Выученные (${learnedIds.size})`;
+
+      const filtered = getFilteredCards();
+
+      if (filtered.length === 0) {
+        els.mainContent.style.display = 'none';
+        els.emptyState.style.display = 'block';
+      } else {
+        els.mainContent.style.display = 'flex';
+        els.emptyState.style.display = 'none';
+
+        if (currentIndex >= filtered.length) currentIndex = 0;
+
+        const currentCard = filtered[currentIndex];
+        els.cardQuestion.textContent = currentCard.question;
+        els.cardAnswer.textContent = currentCard.answer;
+        els.statusText.textContent = `Карточка ${currentIndex + 1} из ${filtered.length}`;
+
+        // Логика лаконичной подсказки
+        if (currentCard.topic) {
+          const match = currentCard.topic.match(/^(Тема\s*\d+\.?)/i);
+          const shortTopic = match ? match[1] : currentCard.topic;
+          
+          els.cardTopicHint.innerHTML = `<svg class="icon icon-sm"><use href="#icon-book"></use></svg> <span>${shortTopic}</span>`;
+          els.cardTopicHint.style.display = 'flex';
+        } else {
+          els.cardTopicHint.style.display = 'none';
+        }
+
+        if (learnedIds.has(currentCard.id)) {
+          els.btnCheck.classList.add('active');
+          els.btnCheck.title = 'Убрать из выученных';
+        } else {
+          els.btnCheck.classList.remove('active');
+          els.btnCheck.title = 'Отметить как выученное';
+        }
+
+        scaleTextToFit();
+      }
+    }
+
+    // Обработчики вкладок
+    function switchTab(tabId) {
+      activeTab = tabId;
+      currentIndex = 0;
+      isFlipped = false;
+      els.cardWrapper.classList.remove('flipped');
+      
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.getElementById(`tab-${tabId}`).classList.add('active');
+      
+      updateUI();
+    }
+
+    els.tabAll.addEventListener('click', () => switchTab('all'));
+    els.tabLearning.addEventListener('click', () => switchTab('learning'));
+    els.tabLearned.addEventListener('click', () => switchTab('learned'));
+
+    // Переворот карточки
+    els.cardWrapper.addEventListener('click', () => {
+      isFlipped = !isFlipped;
+      els.cardWrapper.classList.toggle('flipped', isFlipped);
+    });
+
+    // Навигация
+    els.btnNext.addEventListener('click', () => {
+      const filtered = getFilteredCards();
+      if (filtered.length <= 1) return;
+      isFlipped = false;
+      els.cardWrapper.classList.remove('flipped');
+      setTimeout(() => {
+        currentIndex = (currentIndex + 1) % filtered.length;
+        updateUI();
+      }, 150);
+    });
+
+    els.btnPrev.addEventListener('click', () => {
+      const filtered = getFilteredCards();
+      if (filtered.length <= 1) return;
+      isFlipped = false;
+      els.cardWrapper.classList.remove('flipped');
+      setTimeout(() => {
+        currentIndex = (currentIndex - 1 + filtered.length) % filtered.length;
+        updateUI();
+      }, 150);
+    });
+
+    els.btnShuffle.addEventListener('click', () => {
+      const filtered = getFilteredCards();
+      if (filtered.length <= 1) return;
+      isFlipped = false;
+      els.cardWrapper.classList.remove('flipped');
+      setTimeout(() => {
+        cards.sort(() => Math.random() - 0.5);
+        currentIndex = 0;
+        updateUI();
+      }, 150);
+    });
+
+    els.btnCheck.addEventListener('click', () => {
+      const filtered = getFilteredCards();
+      if (filtered.length === 0) return;
+      const currentCard = filtered[currentIndex];
+      
+      if (learnedIds.has(currentCard.id)) {
+        learnedIds.delete(currentCard.id);
+      } else {
+        learnedIds.add(currentCard.id);
+      }
+      updateUI();
+    });
+
+    // Темная тема
+    els.btnTheme.addEventListener('click', () => {
+      theme = theme === 'light' ? 'dark' : 'light';
+      if (theme === 'dark') {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        els.themeIconUse.setAttribute('href', '#icon-sun');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        els.themeIconUse.setAttribute('href', '#icon-moon');
+      }
+    });
+
+    // Полноэкранный режим
+    function toggleFullscreen() {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const elem = document.documentElement;
+        if (elem.requestFullscreen) {
+          elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) {
+          elem.webkitRequestFullscreen();
+        }
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    }
+
+    els.btnFullscreen.addEventListener('click', toggleFullscreen);
+
+    function updateFullscreenIcon() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        els.fullscreenIconUse.setAttribute('href', '#icon-minimize');
+      } else {
+        els.fullscreenIconUse.setAttribute('href', '#icon-maximize');
+      }
+    }
+    
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
+    // Загрузка файла
+    els.btnUpload.addEventListener('click', () => els.fileInput.click());
+    
+    els.fileInput.addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result;
+        const parsed = parseCSV(text);
+        if (parsed.length > 0) {
+          cards = parsed;
+          learnedIds.clear();
+          currentIndex = 0;
+          isFlipped = false;
+          els.cardWrapper.classList.remove('flipped');
+          els.fileStatusText.textContent = `Загружен файл: ${file.name}`;
+          updateUI();
+        } else {
+          alert('Не удалось распознать карточки. Убедитесь, что формат правильный.');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function parseCSV(text) {
+      const result = [];
+      let row = [];
+      let inQuotes = false;
+      let currentVal = '';
+      
+      for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (inQuotes) {
+          if (char === '"' && text[i + 1] === '"') {
+            currentVal += '"';
+            i++;
+          } else if (char === '"') {
+            inQuotes = false;
+          } else {
+            currentVal += char;
+          }
+        } else {
+          if (char === '"') {
+            inQuotes = true;
+          } else if (char === ',') {
+            row.push(currentVal.trim());
+            currentVal = '';
+          } else if (char === '\n' || char === '\r') {
+            row.push(currentVal.trim());
+            if (row.length >= 2 && row[0] && row[1]) {
+              result.push({ 
+                id: Date.now() + Math.random().toString(), 
+                question: row[0], 
+                answer: row[1],
+                topic: row[2] ? row[2] : '' 
+              });
+            }
+            row = [];
+            currentVal = '';
+            if (char === '\r' && text[i + 1] === '\n') i++;
+          } else {
+            currentVal += char;
+          }
+        }
+      }
+      if (currentVal || row.length > 0) {
+        row.push(currentVal.trim());
+        if (row.length >= 2 && row[0] && row[1]) {
+          result.push({ 
+            id: Date.now() + Math.random().toString(), 
+            question: row[0], 
+            answer: row[1],
+            topic: row[2] ? row[2] : ''
+          });
+        }
+      }
+      return result;
+    }
+
+    updateUI();
+  </script>
+</body>
+</html>
