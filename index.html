@@ -34,6 +34,63 @@
     * { box-sizing: border-box; }
     body { margin: 0; padding: 0; }
 
+    /* Чистый стартовый экран поверх всего */
+    .start-screen-overlay {
+      position: fixed;
+      inset: 0;
+      background-color: #ffffff; /* Белый фон */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      gap: 3rem;
+    }
+    [data-theme="dark"] .start-screen-overlay {
+      background-color: #0f172a; /* Темный фон для темной темы */
+    }
+    
+    .start-title {
+      font-size: 2rem;
+      font-weight: 800;
+      color: #1e293b;
+      text-align: center;
+      margin: 0;
+      padding: 0 1rem;
+    }
+    @media (min-width: 768px) {
+      .start-title { font-size: 3rem; }
+    }
+    [data-theme="dark"] .start-title {
+      color: #f8fafc;
+    }
+
+    .btn-start {
+      font-size: 1.75rem;
+      font-weight: 800;
+      padding: 1.5rem 4rem;
+      border-radius: 1.5rem;
+      background: var(--accent);
+      color: #ffffff;
+      border: none;
+      box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 0 rgba(37, 99, 235, 0.4);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      animation: pulse-start 2s infinite;
+    }
+    .btn-start:hover {
+      transform: scale(1.05) translateY(-5px);
+      background: var(--accent-hover);
+    }
+    @keyframes pulse-start {
+      0% { box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 0 rgba(37, 99, 235, 0.4); }
+      70% { box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 20px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+
+    /* Основной контейнер приложения */
     .app-container {
       min-height: 100vh;
       background: linear-gradient(135deg, var(--bg-color) 0%, var(--card-front-bg) 100%);
@@ -97,7 +154,6 @@
     .btn:hover { border-color: var(--accent); }
     .btn-icon { padding: 0.5rem; border-radius: 0.5rem; }
     
-    /* Синяя кнопка для полноэкранного режима */
     .btn.btn-blue {
       background-color: var(--accent);
       color: #ffffff;
@@ -106,41 +162,6 @@
     .btn.btn-blue:hover {
       background-color: var(--accent-hover);
       border-color: var(--accent-hover);
-    }
-
-    /* Start Screen */
-    .start-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      flex-grow: 1;
-      width: 100%;
-      min-height: 60vh;
-    }
-    .btn-start {
-      font-size: 2rem;
-      font-weight: 800;
-      padding: 1.5rem 4rem;
-      border-radius: 1.5rem;
-      background: var(--accent);
-      color: #ffffff;
-      border: none;
-      box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 0 rgba(37, 99, 235, 0.4);
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      animation: pulse-start 2s infinite;
-    }
-    .btn-start:hover {
-      transform: scale(1.05) translateY(-5px);
-      background: var(--accent-hover);
-    }
-    @keyframes pulse-start {
-      0% { box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 0 rgba(37, 99, 235, 0.4); }
-      70% { box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 20px rgba(37, 99, 235, 0); }
-      100% { box-shadow: 0 10px 30px var(--shadow-color), 0 0 0 0 rgba(37, 99, 235, 0); }
     }
 
     /* Horizontal Scroll Tabs */
@@ -318,11 +339,6 @@
       text-align: center;
     }
 
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: 0.5; }
-    }
-
     /* Controls */
     .controls {
       display: flex;
@@ -427,7 +443,14 @@
     </defs>
   </svg>
 
-  <div class="app-container">
+  <!-- Чистый стартовый экран с белым фоном -->
+  <div class="start-screen-overlay" id="start-screen">
+    <h1 class="start-title">Раздел 5. Право (Часть 2)</h1>
+    <button class="btn-start" id="btn-big-start">Начать</button>
+  </div>
+
+  <!-- Основной контент (скрыт до нажатия НАЧАТЬ) -->
+  <div class="app-container" id="app-container" style="display: none;">
     <!-- Шапка -->
     <div class="header">
       <div>
@@ -442,7 +465,6 @@
         <button class="btn btn-icon" id="btn-theme" title="Переключить тему">
           <svg class="icon"><use id="theme-icon-use" href="#icon-moon"></use></svg>
         </button>
-        <!-- Синяя кнопка для перехода в полноэкранный режим (остается в шапке) -->
         <button class="btn btn-icon btn-blue" id="btn-fullscreen" title="Полноэкранный режим">
           <svg class="icon"><use id="fullscreen-icon-use" href="#icon-maximize"></use></svg>
         </button>
@@ -454,63 +476,55 @@
       </div>
     </div>
 
-    <!-- Начальный экран с большой кнопкой -->
-    <div class="start-screen" id="start-screen">
-      <button class="btn-start" id="btn-big-start">Начать</button>
+    <!-- Навигация (вкладки) -->
+    <div class="tabs-wrapper">
+      <div class="tabs" id="tabs-container">
+        <button class="tab active" data-tab="all" id="tab-all">Все термины (0)</button>
+        <button class="tab" data-tab="learning" id="tab-learning">Осталось выучить (0)</button>
+        <button class="tab" data-tab="learned" id="tab-learned">Выученные (0)</button>
+      </div>
     </div>
 
-    <!-- Основной контент (скрыт до нажатия НАЧАТЬ) -->
-    <div id="app-content" style="display: none; width: 100%; flex-direction: column; align-items: center;">
-      <!-- Навигация (вкладки) -->
-      <div class="tabs-wrapper">
-        <div class="tabs" id="tabs-container">
-          <button class="tab active" data-tab="all" id="tab-all">Все термины (0)</button>
-          <button class="tab" data-tab="learning" id="tab-learning">Осталось выучить (0)</button>
-          <button class="tab" data-tab="learned" id="tab-learned">Выученные (0)</button>
-        </div>
-      </div>
+    <!-- Карточка и элементы управления -->
+    <div id="main-content" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+      <div class="status-text" id="status-text">Карточка 1 из 0</div>
 
-      <!-- Карточка и элементы управления -->
-      <div id="main-content" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-        <div class="status-text" id="status-text">Карточка 1 из 0</div>
-
-        <div class="card-wrapper" id="card-wrapper">
-          <div class="swipe-badge swipe-badge-left" id="badge-left">Повторить</div>
-          <div class="swipe-badge swipe-badge-right" id="badge-right">Выучил</div>
-          <div class="card-inner">
-            <div class="card-face card-front">
-              <span class="card-label">Вопрос</span>
-              <h2 class="card-content" id="card-question"></h2>
-              <p class="card-hint">Нажмите, чтобы перевернуть</p>
-            </div>
-            <div class="card-face card-back">
-              <span class="card-label">Ответ</span>
-              <p class="card-content" id="card-answer"></p>
-              <div class="card-topic-hint" id="card-topic-hint"></div>
-            </div>
+      <div class="card-wrapper" id="card-wrapper">
+        <div class="swipe-badge swipe-badge-left" id="badge-left">Повторить</div>
+        <div class="swipe-badge swipe-badge-right" id="badge-right">Выучил</div>
+        <div class="card-inner">
+          <div class="card-face card-front">
+            <span class="card-label">Вопрос</span>
+            <h2 class="card-content" id="card-question"></h2>
+            <p class="card-hint">Нажмите, чтобы перевернуть</p>
+          </div>
+          <div class="card-face card-back">
+            <span class="card-label">Ответ</span>
+            <p class="card-content" id="card-answer"></p>
+            <div class="card-topic-hint" id="card-topic-hint"></div>
           </div>
         </div>
-
-        <div class="controls" id="controls">
-          <button class="btn-control btn-action" id="btn-shuffle" title="Перемешать все">
-            <svg class="icon"><use href="#icon-shuffle"></use></svg>
-          </button>
-          <button class="btn-control btn-nav" id="btn-prev" title="Предыдущая">
-            <svg class="icon"><use href="#icon-prev"></use></svg>
-          </button>
-          <button class="btn-control btn-main" id="btn-next" title="Следующая">
-            <svg class="icon icon-lg"><use href="#icon-next"></use></svg>
-          </button>
-          <button class="btn-control btn-action" id="btn-check" title="Отметить как выученное">
-            <svg class="icon"><use href="#icon-check"></use></svg>
-          </button>
-        </div>
       </div>
 
-      <!-- Пустое состояние -->
-      <div class="empty-state" id="empty-state">
-        В этой категории пока нет карточек.
+      <div class="controls" id="controls">
+        <button class="btn-control btn-action" id="btn-shuffle" title="Перемешать все">
+          <svg class="icon"><use href="#icon-shuffle"></use></svg>
+        </button>
+        <button class="btn-control btn-nav" id="btn-prev" title="Предыдущая">
+          <svg class="icon"><use href="#icon-prev"></use></svg>
+        </button>
+        <button class="btn-control btn-main" id="btn-next" title="Следующая">
+          <svg class="icon icon-lg"><use href="#icon-next"></use></svg>
+        </button>
+        <button class="btn-control btn-action" id="btn-check" title="Отметить как выученное">
+          <svg class="icon"><use href="#icon-check"></use></svg>
+        </button>
       </div>
+    </div>
+
+    <!-- Пустое состояние -->
+    <div class="empty-state" id="empty-state">
+      В этой категории пока нет карточек.
     </div>
   </div>
 
@@ -593,7 +607,7 @@
     const els = {
       startScreen: document.getElementById('start-screen'),
       btnBigStart: document.getElementById('btn-big-start'),
-      appContent: document.getElementById('app-content'),
+      appContainer: document.getElementById('app-container'),
       cardWrapper: document.getElementById('card-wrapper'),
       badgeLeft: document.getElementById('badge-left'),
       badgeRight: document.getElementById('badge-right'),
@@ -619,7 +633,7 @@
       btnShuffle: document.getElementById('btn-shuffle')
     };
 
-    // Функция старта: переход в полноэкранный режим и показ карточек
+    // Функция старта: переход в полноэкранный режим и показ приложения
     els.btnBigStart.addEventListener('click', () => {
       // Пытаемся развернуть на весь экран (работает после клика пользователя)
       const elem = document.documentElement;
@@ -629,19 +643,19 @@
         elem.webkitRequestFullscreen();
       }
 
-      // Скрываем стартовый экран, показываем карточки
+      // Скрываем стартовый экран, показываем основной контейнер приложения
       els.startScreen.style.display = 'none';
-      els.appContent.style.display = 'flex';
+      els.appContainer.style.display = 'flex';
       
-      // Вызываем обновление UI и пересчет текста, так как карточки стали видимыми
+      // Вызываем обновление UI и пересчет текста
       updateUI();
       scaleTextToFit();
     });
 
     // Функция масштабирования текста под размер карточки
     function scaleTextToFit() {
-      // Если контейнер скрыт (до нажатия старт), высота равна 0 – игнорируем, чтобы не сжать текст до 12px
-      if (els.appContent.style.display === 'none') return;
+      // Если контейнер скрыт (до нажатия старт), высота равна 0 – игнорируем
+      if (els.appContainer.style.display === 'none') return;
       
       requestAnimationFrame(() => {
         els.cardQuestion.style.fontSize = '';
