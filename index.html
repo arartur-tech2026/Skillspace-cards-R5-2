@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Право (Часть 2) – Карточки</title>
   <style>
     :root {
@@ -32,22 +32,40 @@
     }
 
     * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; }
+    
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--bg-color);
+      overscroll-behavior-y: none;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* Исправление для Safari: гарантия растягивания при Fullscreen */
+    :-webkit-full-screen {
+      width: 100% !important;
+      height: 100% !important;
+      background-color: var(--bg-color);
+    }
 
     /* Чистый стартовый экран поверх всего */
     .start-screen-overlay {
       position: fixed;
       inset: 0;
-      background-color: #ffffff; /* Белый фон */
+      background-color: #ffffff;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       z-index: 9999;
       gap: 3rem;
+      width: 100%;
+      height: 100%;
     }
     [data-theme="dark"] .start-screen-overlay {
-      background-color: #0f172a; /* Темный фон для темной темы */
+      background-color: #0f172a;
     }
     
     .start-title {
@@ -79,6 +97,7 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
       animation: pulse-start 2s infinite;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn-start:hover {
       transform: scale(1.05) translateY(-5px);
@@ -93,6 +112,8 @@
     /* Основной контейнер приложения */
     .app-container {
       min-height: 100vh;
+      min-height: 100dvh;
+      width: 100%;
       background: linear-gradient(135deg, var(--bg-color) 0%, var(--card-front-bg) 100%);
       color: var(--text-main);
       font-family: system-ui, -apple-system, sans-serif;
@@ -150,6 +171,7 @@
       font-weight: 500;
       cursor: pointer;
       transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn:hover { border-color: var(--accent); }
     .btn-icon { padding: 0.5rem; border-radius: 0.5rem; }
@@ -190,6 +212,7 @@
       cursor: pointer;
       font-size: 0.875rem;
       transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .tab.active {
       background: var(--accent);
@@ -216,6 +239,7 @@
       margin-bottom: 2.5rem;
       user-select: none;
       will-change: transform;
+      -webkit-tap-highlight-color: transparent;
     }
     @media (min-width: 768px) { .card-wrapper { height: 384px; } }
 
@@ -357,6 +381,7 @@
       color: var(--text-main);
       cursor: pointer;
       transition: all 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
     .btn-control:hover { transform: scale(1.05); border-color: var(--accent); }
 
@@ -443,7 +468,7 @@
     </defs>
   </svg>
 
-  <!-- Чистый стартовый экран с белым фоном -->
+  <!-- Чистый стартовый экран -->
   <div class="start-screen-overlay" id="start-screen">
     <h1 class="start-title">Раздел 5. Право (Часть 2)</h1>
     <button class="btn-start" id="btn-big-start">Начать</button>
@@ -633,28 +658,58 @@
       btnShuffle: document.getElementById('btn-shuffle')
     };
 
+    // Безопасный вызов Fullscreen API
+    function requestFullScreenSafe(element) {
+      try {
+        if (element.requestFullscreen) {
+          element.requestFullscreen().catch(err => console.warn('Fullscreen err:', err));
+        } else if (element.webkitRequestFullscreen) {
+          element.webkitRequestFullscreen();
+        } else if (element.msRequestFullscreen) {
+          element.msRequestFullscreen();
+        }
+      } catch (e) {
+        console.warn('API не поддерживается:', e);
+      }
+    }
+
     // Функция старта: переход в полноэкранный режим и показ приложения
     els.btnBigStart.addEventListener('click', () => {
-      // Пытаемся развернуть на весь экран (работает после клика пользователя)
-      const elem = document.documentElement;
-      if (elem.requestFullscreen) {
-        elem.requestFullscreen().catch(err => console.log('Fullscreen error:', err));
-      } else if (elem.webkitRequestFullscreen) {
-        elem.webkitRequestFullscreen();
-      }
+      requestFullScreenSafe(document.documentElement);
 
-      // Скрываем стартовый экран, показываем основной контейнер приложения
       els.startScreen.style.display = 'none';
       els.appContainer.style.display = 'flex';
       
-      // Вызываем обновление UI и пересчет текста
       updateUI();
       scaleTextToFit();
     });
 
+    // Полноэкранный режим из шапки
+    els.btnFullscreen.addEventListener('click', () => {
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        requestFullScreenSafe(document.documentElement);
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        }
+      }
+    });
+
+    function updateFullscreenIcon() {
+      if (document.fullscreenElement || document.webkitFullscreenElement) {
+        els.fullscreenIconUse.setAttribute('href', '#icon-minimize');
+      } else {
+        els.fullscreenIconUse.setAttribute('href', '#icon-maximize');
+      }
+    }
+    
+    document.addEventListener('fullscreenchange', updateFullscreenIcon);
+    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
+
     // Функция масштабирования текста под размер карточки
     function scaleTextToFit() {
-      // Если контейнер скрыт (до нажатия старт), высота равна 0 – игнорируем
       if (els.appContainer.style.display === 'none') return;
       
       requestAnimationFrame(() => {
@@ -757,7 +812,7 @@
     let isDragging = false;
     let hasDragged = false;
     let isScrolling = false;
-    let wasSwiped = false; // Флаг для блокировки переворота после свайпа
+    let wasSwiped = false; 
 
     function handleDragStart(clientX, clientY) {
       isDragging = true;
@@ -777,17 +832,14 @@
       const deltaX = currentX - startX;
       const deltaY = clientY - startY;
 
-      // Если мы еще не определились, что делает пользователь
       if (!hasDragged && !isScrolling) {
-        // Если движение больше по вертикали - это скролл текста
         if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 5) {
           isScrolling = true;
-          isDragging = false; // Отменяем обработку свайпа
+          isDragging = false; 
           els.cardWrapper.style.transition = 'transform 0.25s ease';
           els.cardWrapper.style.transform = 'translateX(0) rotate(0)';
           return;
         }
-        // Если движение больше по горизонтали - это свайп карточки
         if (Math.abs(deltaX) > 5) {
           hasDragged = true;
         }
@@ -796,14 +848,12 @@
       if (isScrolling) return;
 
       if (hasDragged) {
-        // Жестко блокируем системные свайпы (назад/вперед/скролл) при горизонтальном смахивании
         if (e.cancelable) e.preventDefault(); 
         
         wasSwiped = true;
         const rotate = deltaX * 0.05;
         els.cardWrapper.style.transform = `translateX(${deltaX}px) rotate(${rotate}deg)`;
         
-        // Визуальная подсветка
         if (deltaX > 20) {
           els.badgeRight.style.opacity = Math.min(deltaX / 100, 1);
           els.badgeLeft.style.opacity = 0;
@@ -825,10 +875,8 @@
 
       const deltaX = currentX - startX;
       
-      // Делаем анимацию возврата или вылета плавной и более быстрой
       els.cardWrapper.style.transition = 'transform 0.3s ease-out';
 
-      // Адаптивный порог: не нужно свайпать резко, достаточно довести до определенной точки экрана (минимум 80px)
       const threshold = Math.max(window.innerWidth * 0.25, 80);
 
       if (hasDragged) {
@@ -837,7 +885,6 @@
         } else if (deltaX < -threshold) {
           handleSwipe('left');
         } else {
-          // Вернуть в центр, если свайп был коротким
           els.cardWrapper.style.transform = 'translateX(0) rotate(0)';
           els.badgeRight.style.opacity = 0;
           els.badgeLeft.style.opacity = 0;
@@ -860,7 +907,6 @@
       handleDragStart(e.touches[0].clientX, e.touches[0].clientY);
     }, { passive: true });
     
-    // ВАЖНО: { passive: false } позволяет использовать e.preventDefault()
     window.addEventListener('touchmove', (e) => {
       handleDragMove(e.touches[0].clientX, e.touches[0].clientY, e);
     }, { passive: false });
@@ -909,12 +955,10 @@
         els.badgeLeft.style.opacity = 0;
         
         updateUI();
-      }, 300); // 300ms – время ускоренной анимации
+      }, 300);
     }
 
-    // Переворот карточки по клику
     els.cardWrapper.addEventListener('click', (e) => {
-      // Если это был свайп, а не просто клик, блокируем переворот
       if (wasSwiped) {
         e.preventDefault();
         return;
@@ -922,7 +966,6 @@
       isFlipped = !isFlipped;
       els.cardWrapper.classList.toggle('flipped', isFlipped);
     });
-    // --- Конец логики свайпов ---
 
     // Навигация по кнопкам
     els.btnNext.addEventListener('click', () => {
@@ -983,37 +1026,6 @@
         els.themeIconUse.setAttribute('href', '#icon-moon');
       }
     });
-
-    // Полноэкранный режим
-    function toggleFullscreen() {
-      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-          elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) {
-          elem.webkitRequestFullscreen();
-        }
-      } else {
-        if (document.exitFullscreen) {
-          document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-          document.webkitExitFullscreen();
-        }
-      }
-    }
-
-    els.btnFullscreen.addEventListener('click', toggleFullscreen);
-
-    function updateFullscreenIcon() {
-      if (document.fullscreenElement || document.webkitFullscreenElement) {
-        els.fullscreenIconUse.setAttribute('href', '#icon-minimize');
-      } else {
-        els.fullscreenIconUse.setAttribute('href', '#icon-maximize');
-      }
-    }
-    
-    document.addEventListener('fullscreenchange', updateFullscreenIcon);
-    document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
 
     // Загрузка файла
     els.btnUpload.addEventListener('click', () => els.fileInput.click());
@@ -1096,7 +1108,6 @@
       return result;
     }
 
-    // Инициализация (скрываем интерфейс до нажатия кнопки "Начать")
     updateUI();
   </script>
 </body>
